@@ -63,13 +63,14 @@ class FoundationStream : NSObject, WebSocketStream, StreamDelegate, SOCKSProxyab
 
       #if os(watchOS) //watchOS us unfortunately is missing the kCFStream properties to make this work
       #else
-      if enableSOCKSProxy {
-        let proxyDict = CFNetworkCopySystemProxySettings()
-        let socksConfig = CFDictionaryCreateMutableCopy(nil, 0, proxyDict!.takeRetainedValue())
-        let propertyKey = CFStreamPropertyKey(rawValue: kCFStreamPropertySOCKSProxy)
-        CFWriteStreamSetProperty(outputStream, propertyKey, socksConfig)
-        CFReadStreamSetProperty(inputStream, propertyKey, socksConfig)
-      }
+        if enableSOCKSProxy {
+            let socksConfig = CFDictionaryCreateMutableCopy(nil, 0, CFNetworkCopySystemProxySettings()!.takeRetainedValue()) as! [String: Any]
+            let propertyKey = CFStreamPropertyKey(rawValue: kCFStreamPropertySOCKSProxy)
+            let ip = socksConfig["HTTPSProxy"]
+            let proxySocksConfig = ["SOCKSProxy": ip, "SOCKSPort": 8889, "SOCKSEnable": true] as CFDictionary // Where 8889 is the SOCKS proxy port in Charles
+            CFWriteStreamSetProperty(outputStream, propertyKey, proxySocksConfig)
+            CFReadStreamSetProperty(inputStream, propertyKey, proxySocksConfig)
+        }
       #endif
 
       guard let inStream = inputStream, let outStream = outputStream else { return }
